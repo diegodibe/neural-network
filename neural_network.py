@@ -41,5 +41,6 @@ for epoch in range(5000):
 
     # updataing weight
     weight -= learning_rate * np.dot(measurement.T, delta)
+    
 
 
