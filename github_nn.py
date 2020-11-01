@@ -34,8 +34,8 @@ LAMBDA = 0.00005
 epochs = 0
 totalError = 0
 converged = False
-# while not converged:
-while epochs < 100:
+while not converged:
+# while epochs < 100:
     totalError = 0
     # samples = examples[np.random.randint(len(examples), size=batchSize)]
     samples = np.random.permutation(examples)
@@ -53,17 +53,17 @@ while epochs < 100:
         activationHidden = np.append([1], a2).reshape(-1, 1)
         inputToOutput = np.dot(activationHidden.T, weightsHO)
         yPred = sigmoid(inputToOutput)
-        print(f'yPred {yPred}')
-        print(f'Sample {sample}')
+        # print(f'yPred {yPred}')
+        # print(f'Sample {sample}')
 
         ### Backpropagation ###
         # Error of Output
         delta3 = yPred - sample
-        print(f'delta3 {delta3.shape}')
+        # print(f'delta3 {delta3.shape}')
         delta2 = np.multiply(np.dot(delta3, weightsHO.T), derivedSigmoid(activationHidden.T))
-        print(f'delta2 {delta2.shape}')
-        print(f'activation hidden {activationHidden.shape}')
-        print(f'activation input {activationInput.shape}')
+        # print(f'delta2 {delta2.shape}')
+        # print(f'activation hidden {activationHidden.shape}')
+        # print(f'activation input {activationInput.shape}')
         updateWeightsHO += np.dot(activationHidden, delta3)
         updateWeightsIH += np.dot(activationInput, delta2[:, 1:])
         # The total error should actually be the sum of the absolute errors, but

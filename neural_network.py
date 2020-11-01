@@ -11,7 +11,11 @@ def derivative(x):
 
 
 def cost_fct(x, y):
-    return 0.5 * ((x - y) * (x - y))
+    return 0.5 * (pow(abs(x - y), 2))
+
+
+def cost_fct2(x, y):
+    return x - y
 
 
 def create_training_sample(x):
@@ -33,57 +37,62 @@ training_set = []
 for i in range(8):
     training_set.append((create_training_sample(i), create_training_sample(i)))
 # TODO initialize near zero (0, 0.01^2)
-layer1_weights = np.random.random_sample((9, 3)) * 0.01
-layer2_weights = np.random.random_sample((4, 8)) * 0.01
-layer1_activation = np.zeros(9)
-layer2_activation = np.zeros(4)
-layer3_activation = np.zeros(8)
+layer1_weights = np.random.random_sample((9, 3))  # * 0.001
+layer2_weights = np.random.random_sample((4, 8))  # * 0.001
+layer1_activation = np.zeros(9).reshape(-1, 1)
+layer2_activation = np.zeros(4).reshape(-1, 1)
+layer3_activation = np.zeros(8).reshape(-1, 1)
 layer1_activation[0] = 1
 layer2_activation[0] = 1
 
-print(layer1_weights)
-print(layer2_weights)
+# print(layer1_weights)
+# print(layer2_weights)
 
-# random weight, learning rate
-# weight = [0.5]
-learning_rate = 0.1
-const_lambda = 0.01
-cost = 0
+# learning rate and weight decay
+learning_rate = 1.5
+const_lambda = 0.00005
 
-for epoch in range(100):
+for epoch in range(30000):
+    cost = 0
     layer1_df_W = np.zeros((9, 3))
     layer2_df_W = np.zeros((4, 8))
-    for m in training_set:
-        layer1_activation[1:] = m[0]
+    batch = np.random.permutation(training_set)
+    for m in batch:
+        layer1_activation[1:, :] = m[0].reshape(-1, 1)
 
-        layer2_activation[1:] = np.vectorize(sigmoid)(np.dot(layer1_activation, layer1_weights))
+        layer2_activation[1:, :] = sigmoid(np.dot(layer1_activation.T, layer1_weights).T)
 
-        layer3_activation = np.vectorize(sigmoid)(np.dot(layer2_activation, layer2_weights))
+        layer3_activation = sigmoid(np.dot(layer2_activation.T, layer2_weights).T)
+
+        # print(m[0])
+        # print(layer3_activation.T)
+        # print()
         # print("layer3", layer3_activation)
 
-        # TODO implement proper cost function 1/m sum (1/2 (aL-y)^2 + lambda/2 (W^2)
-        cost += np.sum(np.vectorize(cost_fct)(layer3_activation, m[1]))
+        cost += np.sum(cost_fct2(layer3_activation, m[1]))
 
-        error_4 = np.multiply(np.vectorize(derivative)(layer3_activation), (layer3_activation - m[1]))
+        delta_3 = np.multiply(layer3_activation.T - m[1], derivative(layer3_activation).T)
+        delta_3 = layer3_activation.T - m[1]
 
-        error_3 = np.multiply(np.dot(error_4, layer2_weights.T), np.vectorize(derivative)(layer2_activation))
+        delta_2 = np.multiply(np.dot(delta_3, layer2_weights.T), derivative(layer2_activation).T)
+        delta_2[:, 0] = np.dot(delta_3, layer2_weights[1, :])
 
-        print("ground truth", m[1])
-        print("prediction:", layer3_activation)
+        layer2_df_W += np.dot(layer2_activation, delta_3)
+        layer1_df_W += np.dot(layer1_activation, delta_2[:, 1:])
 
-        layer1_df_W = layer1_df_W + np.dot(layer1_activation.reshape(-1, 1), error_3[1:].reshape(-1, 1).T)
-        layer2_df_W = layer2_df_W + np.dot(layer2_activation.reshape(-1, 1), error_4.reshape(-1, 1).T)
+        # print("layer2", layer2_df_W)
+        # print("layer1", layer1_df_W)
 
-    layer1_weights[0, :] = layer1_weights[0, :] - learning_rate * ((1 / len(training_set)) * layer1_df_W[0, :])
-    layer2_weights[0, :] = layer2_weights[0, :] - learning_rate * ((1 / len(training_set)) * layer2_df_W[0, :])
-    layer1_weights[1:, :] = layer1_weights[1:, :] - learning_rate * (
-            (1 / len(training_set)) * layer1_df_W[1:, :] + const_lambda * layer1_weights[1:, :])
-    layer2_weights[1:, :] = layer2_weights[1:, :] - learning_rate * (
-            (1 / len(training_set)) * layer2_df_W[1:, :] + const_lambda * layer2_weights[1:, :])
+    m = len(training_set)
+    layer1_weights[0, :] -= learning_rate * ((1 / m) * layer1_df_W[0, :])
+    layer2_weights[0, :] -= learning_rate * ((1 / m) * layer2_df_W[0, :])
+    layer1_weights[1:, :] -= learning_rate * (
+            ((1 / m) * layer1_df_W[1:, :]) + (const_lambda * layer1_weights[1:, :]))
+    layer2_weights[1:, :] -= learning_rate * (
+            ((1 / m) * layer2_df_W[1:, :]) + (const_lambda * layer2_weights[1:, :]))
 
-    print(layer3_activation)
-    # print(layer1_weights)
-    # print(layer2_weights)
-    print()
-    print("cost", cost / len(training_set), epoch)
-    cost = 0
+    # TODO implement proper cost function 1/m sum (1/2 (aL-y)^2 + lambda/2 (W^2)
+    # print(np.dot(layer1_weights, layer1_weights.T))
+    cost_Wb = (cost / m)  # + ((const_lambda/2) * (np.dot(layer1_weights, layer1_weights.T) +
+    # np.dot(layer2_weights, layer2_weights.T)))
+    print("Total Cost", cost_Wb, epoch)
