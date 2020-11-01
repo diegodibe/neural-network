@@ -7,7 +7,7 @@ def sigmoid(x):
 
 
 def derivative(x):
-    return np.dot(x, (1 - x))
+    return x * (1 - x)
 
 
 def cost_fct(x, y):
@@ -30,77 +30,60 @@ def create_training_sample(x):
 # measurement = input_values
 
 training_set = []
-for i in range(6):
+for i in range(8):
     training_set.append((create_training_sample(i), create_training_sample(i)))
-
-layer1_weights = np.random.random_sample((9, 3))
-layer2_weights = np.random.random_sample((4, 8))
-layer1_activation = np.zeros(8)
-layer2_activation = np.zeros(3)
+# TODO initialize near zero (0, 0.01^2)
+layer1_weights = np.random.random_sample((9, 3)) * 0.01
+layer2_weights = np.random.random_sample((4, 8)) * 0.01
+layer1_activation = np.zeros(9)
+layer2_activation = np.zeros(4)
 layer3_activation = np.zeros(8)
+layer1_activation[0] = 1
+layer2_activation[0] = 1
 
-layer1_df_W = np.zeros((9, 3))
-layer2_df_W = np.zeros((4, 8))
+print(layer1_weights)
+print(layer2_weights)
 
 # random weight, learning rate
 # weight = [0.5]
-learning_rate = 0.001
+learning_rate = 0.1
 const_lambda = 0.01
+cost = 0
 
-for epoch in range(20):
+for epoch in range(100):
+    layer1_df_W = np.zeros((9, 3))
+    layer2_df_W = np.zeros((4, 8))
     for m in training_set:
-        layer1_activation = m[0]
-        # add bias node
-        layer1_activation = np.insert(layer1_activation, 0, 1)
-        print("layer1", layer1_activation)
+        layer1_activation[1:] = m[0]
 
-        layer2_activation = np.vectorize(sigmoid)(np.dot(layer1_weights.T, layer1_activation))
-        # add bias node
-        layer2_activation = np.insert(layer2_activation, 0, 1)
-        # print("layer2", layer2_activation)
-        layer3_activation = np.vectorize(sigmoid)(np.dot(layer2_weights.T, layer2_activation))
-        print("layer3", layer3_activation)
+        layer2_activation[1:] = np.vectorize(sigmoid)(np.dot(layer1_activation, layer1_weights))
 
-        cost = np.vectorize(cost_fct)(layer3_activation, m[1])
-        print("cost", np.average(cost))
+        layer3_activation = np.vectorize(sigmoid)(np.dot(layer2_activation, layer2_weights))
+        # print("layer3", layer3_activation)
 
-        error_4 = np.dot(derivative(layer3_activation), (layer3_activation - m[1]))
-        # print("error 4", error_4)
+        # TODO implement proper cost function 1/m sum (1/2 (aL-y)^2 + lambda/2 (W^2)
+        cost += np.sum(np.vectorize(cost_fct)(layer3_activation, m[1]))
 
-        error_3 = np.dot(np.dot(layer2_weights, error_4), derivative(layer2_activation))
-        # print("error 3", error_3)
+        error_4 = np.multiply(np.vectorize(derivative)(layer3_activation), (layer3_activation - m[1]))
 
-        error_2 = np.dot(np.dot(layer1_weights, np.delete(error_3, 0)), derivative(layer1_activation))
-        # print("error 2", error_2)
+        error_3 = np.multiply(np.dot(error_4, layer2_weights.T), np.vectorize(derivative)(layer2_activation))
 
-        layer1_df_W = layer1_df_W + np.dot(layer1_activation, error_2)
-        layer2_df_W = layer2_df_W + np.dot(layer2_activation, error_3)
+        print("ground truth", m[1])
+        print("prediction:", layer3_activation)
 
-        # print(layer1_weights)
-        # print(layer2_weights)
+        layer1_df_W = layer1_df_W + np.dot(layer1_activation.reshape(-1, 1), error_3[1:].reshape(-1, 1).T)
+        layer2_df_W = layer2_df_W + np.dot(layer2_activation.reshape(-1, 1), error_4.reshape(-1, 1).T)
 
-        layer1_activation = np.delete(layer1_activation, 0)
-        layer2_activation = np.delete(layer2_activation, 0)
+    layer1_weights[0, :] = layer1_weights[0, :] - learning_rate * ((1 / len(training_set)) * layer1_df_W[0, :])
+    layer2_weights[0, :] = layer2_weights[0, :] - learning_rate * ((1 / len(training_set)) * layer2_df_W[0, :])
+    layer1_weights[1:, :] = layer1_weights[1:, :] - learning_rate * (
+            (1 / len(training_set)) * layer1_df_W[1:, :] + const_lambda * layer1_weights[1:, :])
+    layer2_weights[1:, :] = layer2_weights[1:, :] - learning_rate * (
+            (1 / len(training_set)) * layer2_df_W[1:, :] + const_lambda * layer2_weights[1:, :])
 
-    # TODO don't apply weight decay to bias
-    layer1_weights = layer1_weights - learning_rate * (
-            (1 / len(training_set)) * layer1_df_W + const_lambda * layer1_weights)
-    layer2_weights = layer2_weights - learning_rate * (
-            (1 / len(training_set)) * layer2_df_W + const_lambda * layer2_weights)
-
-    print(layer1_weights)
-    print(layer2_weights)
-    # # forward propagation
-    # prediction_out = sigmoid(prediction_in)
-    # print(prediction_out)
-    #
-    # # backpropagation
-    # # error calculation
-    # error = (prediction_out - output_values).sum()
-    # print(error)
-    #
-    # # derivative
-    # delta = error * sigmoid_derivative(prediction_out)
-    #
-    # # updataing weight
-    # weight -= learning_rate * np.dot(measurement.T, delta)
+    print(layer3_activation)
+    # print(layer1_weights)
+    # print(layer2_weights)
+    print()
+    print("cost", cost / len(training_set), epoch)
+    cost = 0
