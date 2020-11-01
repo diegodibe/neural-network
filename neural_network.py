@@ -10,6 +10,10 @@ def derivative(x):
     return np.dot(x, (1 - x))
 
 
+def cost_fct(x, y):
+    return 0.5 * ((x - y) * (x - y))
+
+
 def create_training_sample(x):
     training_sample = np.zeros(8)
     if x > 8:
@@ -41,9 +45,9 @@ layer2_df_W = np.zeros((4, 8))
 # random weight, learning rate
 # weight = [0.5]
 learning_rate = 0.001
-const_lambda = 0.5
+const_lambda = 0.01
 
-for epoch in range(1):
+for epoch in range(20):
     for m in training_set:
         layer1_activation = m[0]
         # add bias node
@@ -53,28 +57,32 @@ for epoch in range(1):
         layer2_activation = np.vectorize(sigmoid)(np.dot(layer1_weights.T, layer1_activation))
         # add bias node
         layer2_activation = np.insert(layer2_activation, 0, 1)
-        print("layer2", layer2_activation)
+        # print("layer2", layer2_activation)
         layer3_activation = np.vectorize(sigmoid)(np.dot(layer2_weights.T, layer2_activation))
         print("layer3", layer3_activation)
 
+        cost = np.vectorize(cost_fct)(layer3_activation, m[1])
+        print("cost", np.average(cost))
+
         error_4 = np.dot(derivative(layer3_activation), (layer3_activation - m[1]))
-        print("error 4", error_4)
+        # print("error 4", error_4)
 
         error_3 = np.dot(np.dot(layer2_weights, error_4), derivative(layer2_activation))
-        print("error 3", error_3)
+        # print("error 3", error_3)
 
         error_2 = np.dot(np.dot(layer1_weights, np.delete(error_3, 0)), derivative(layer1_activation))
-        print("error 2", error_2)
+        # print("error 2", error_2)
 
         layer1_df_W = layer1_df_W + np.dot(layer1_activation, error_2)
         layer2_df_W = layer2_df_W + np.dot(layer2_activation, error_3)
 
-        print(layer1_weights)
-        print(layer2_weights)
+        # print(layer1_weights)
+        # print(layer2_weights)
 
         layer1_activation = np.delete(layer1_activation, 0)
         layer2_activation = np.delete(layer2_activation, 0)
 
+    # TODO don't apply weight decay to bias
     layer1_weights = layer1_weights - learning_rate * (
             (1 / len(training_set)) * layer1_df_W + const_lambda * layer1_weights)
     layer2_weights = layer2_weights - learning_rate * (
