@@ -6,8 +6,20 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-def sigmoid_derivative(x):
-    return sigmoid(x) * (1 - sigmoid(x))
+def derivative(x):
+    return x * (1 - x)
+
+
+def cost_fct(x, y):
+    return 0.5 * (pow(abs(x - y), 2))
+
+
+def cost_fct2(x, y):
+    return x - y
+
+
+def cost_fct3(x, y):  # todo check if pow works the same
+    return np.mean(0.5 * (pow((x - y), 2))) + const_lambda / 2 * (np.sum(pow(layer1_weights, 2)) + np.sum(pow(layer2_weights, 2)))
 
 
 def create_training_sample(x):
@@ -18,66 +30,70 @@ def create_training_sample(x):
     return training_sample
 
 
-# input_values = np.array([[1, 0, 0]])
-# input_values = input_values.reshape(input_values.size, 1)
-# output_values = input_values
-# adding bias to input
-# input_values = np.insert(input_values, 0, 1).reshape(input_values.size + 1, 1)
-# measurement = input_values
-
 training_set = []
-for i in range(1):
+for i in range(8):
     training_set.append((create_training_sample(i), create_training_sample(i)))
+# TODO initialize near zero (0, 0.01^2)
+layer1_weights = np.random.random_sample((9, 3)) * 0.001
+layer2_weights = np.random.random_sample((4, 8)) * 0.001
+layer1_activation = np.zeros(9).reshape(-1, 1)
+layer2_activation = np.zeros(4).reshape(-1, 1)
+layer3_activation = np.zeros(8).reshape(-1, 1)
+layer1_activation[0] = 1
+layer2_activation[0] = 1
 
-# 8 nodes and 1 bias node to 3 nodes
-layer1_weights = np.zeros(27)
-# 3 nodes and 1 bias node to 8 nodes
-layer2_weights = np.zeros(32)
-layer1_activation = np.zeros(8)
-layer2_activation = np.zeros(3)
-layer3_activation = np.zeros(8)
+# print(layer1_weights)
+# print(layer2_weights)
 
-# random weight, learning rate
-# weight = [0.5]
-learning_rate = 0.001
+# learning rate and weight decay
+learning_rate = 0.05
+const_lambda = 0.00005
+cost_tot = 9999999
+cost_iter = 0
 
-for epoch in range(1):
-    for m in training_set:
-        layer1_activation = m[0]
-        # add bias node
-        layer1_activation = np.insert(layer1_activation, 0, 1)
-        print(layer1_activation)
+# todo plot loss accuray curve
+for epoch in range(3000):
+    cost = 0
+    layer1_df_W = np.zeros((9, 3))
+    layer2_df_W = np.zeros((4, 8))
+    batch = np.random.permutation(training_set)
+    for m in batch:
+        layer1_activation[1:, :] = m[0].reshape(-1, 1)
 
-        for i in range(layer2_activation.size):
-            layer2_activation[i] = sigmoid(np.dot(layer1_activation, layer1_weights[9*i:9*(i+1)]))
-        # add bias node
-        layer2_activation = np.insert(layer2_activation, 0, 1)
-        print(layer2_activation)
-        for i in range(layer3_activation.size):
-            layer3_activation[i] = sigmoid(np.dot(layer2_activation, layer2_weights[4*i:4*(i+1)]))
-        print(layer3_activation)
+        layer2_activation[1:, :] = sigmoid(np.dot(layer1_activation.T, layer1_weights).T)
 
-        error_3 = np.dot(np.dot(layer3_activation, 1-layer3_activation), (layer3_activation-m[1]))
-        print(error_3)
+        layer3_activation = sigmoid(np.dot(layer2_activation.T, layer2_weights).T)
 
-        print(layer2_weights.T)
-        print(error_3)
-        print(layer2_activation)
-        for i in range(layer2_activation.size):
-            error_2 = np.dot(np.dot(layer2_weights[4*i:4*(i+1)], error_3), np.dot(layer2_activation, 1-layer2_activation))
+        # print(m[0])
+        # print(layer3_activation.T)
+        # print()
+        # print("layer3", layer3_activation)
 
-        # # forward propagation
-        # prediction_out = sigmoid(prediction_in)
-        # print(prediction_out)
-        #
-        # # backpropagation
-        # # error calculation
-        # error = (prediction_out - output_values).sum()
-        # print(error)
-        #
-        # # derivative
-        # delta = error * sigmoid_derivative(prediction_out)
-        #
-        # # updataing weight
-        # weight -= learning_rate * np.dot(measurement.T, delta)
+        cost += np.sum(cost_fct3(layer3_activation, m[1]))
 
+        delta_3 = np.multiply(layer3_activation.T - m[1], derivative(layer3_activation).T)
+        delta_3 = layer3_activation.T - m[1]
+
+        delta_2 = np.multiply(np.dot(delta_3, layer2_weights.T), derivative(layer2_activation).T)
+        delta_2[:, 0] = np.dot(delta_3, layer2_weights[1, :])
+
+        layer2_df_W += np.dot(layer2_activation, delta_3)
+        layer1_df_W += np.dot(layer1_activation, delta_2[:, 1:])
+
+        # print("layer2", layer2_df_W)
+        # print("layer1", layer1_df_W)
+
+
+    m = len(training_set)
+    layer1_weights[0, :] -= learning_rate * ((1 / m) * layer1_df_W[0, :])
+    layer2_weights[0, :] -= learning_rate * ((1 / m) * layer2_df_W[0, :])
+    layer1_weights[1:, :] -= learning_rate * (
+            ((1 / m) * layer1_df_W[1:, :]) + (const_lambda * layer1_weights[1:, :]))
+    layer2_weights[1:, :] -= learning_rate * (
+            ((1 / m) * layer2_df_W[1:, :]) + (const_lambda * layer2_weights[1:, :]))
+
+    # TODO implement proper cost function 1/m sum (1/2 (aL-y)^2 + lambda/2 (W^2)
+    # print(np.dot(layer1_weights, layer1_weights.T))
+    cost_Wb = (cost)  # / m)   + ((const_lambda/2) * (np.dot(layer1_weights, layer1_weights.T) +
+    # np.dot(layer2_weights, layer2_weights.T)))
+    print("Total Cost", cost_Wb, epoch)
