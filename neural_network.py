@@ -19,8 +19,8 @@ def cost_fct2(x, y):
     return x - y
 
 
-def cost_fct3(x, y):  # todo check if pow works the same
-    return np.mean(0.5 * (pow((x - y), 2))) + const_lambda / 2 * (np.sum(pow(layer1_weights, 2)) + np.sum(pow(layer2_weights, 2)))
+def cost_fct3(x, y):
+    return 0.5 * (np.power((x - y), 2))
 
 
 def create_training_sample(x):
@@ -47,10 +47,10 @@ layer2_activation[0] = 1
 # print(layer2_weights)
 
 # learning rate and weight decay
-learning_rate = 0.05
-const_lambda = 0.00005
+learning_rate = 2
+const_lambda = 0
 cost_iter = np.array([])
-training_epochs = 3000
+training_epochs = 2000
 
 
 for epoch in range(training_epochs):
@@ -65,9 +65,10 @@ for epoch in range(training_epochs):
 
         layer3_activation = sigmoid(np.dot(layer2_activation.T, layer2_weights).T)
 
-        # print(m[0])
-        # print(layer3_activation.T)
-        # print()
+        if epoch == 1999:
+            print(m[0])
+            print(layer3_activation.T)
+            print()
         # print("layer3", layer3_activation)
 
         cost += np.sum(cost_fct3(layer3_activation, m[1]))
@@ -76,13 +77,11 @@ for epoch in range(training_epochs):
 
         delta_2 = np.multiply(np.dot(delta_3, layer2_weights.T), derivative(layer2_activation).T)
 
-        # TODO add weight decay to weight only!!
         layer2_df_W += np.dot(layer2_activation, delta_3)
         layer1_df_W += np.dot(layer1_activation, delta_2[:, 1:])
 
         # print("layer2", layer2_df_W)
         # print("layer1", layer1_df_W)
-
 
     m = len(training_set)
     layer1_weights[0, :] -= learning_rate * ((1 / m) * layer1_df_W[0, :])
@@ -92,10 +91,8 @@ for epoch in range(training_epochs):
     layer2_weights[1:, :] -= learning_rate * (
             ((1 / m) * layer2_df_W[1:, :]) + (const_lambda * layer2_weights[1:, :]))
 
-    # TODO implement proper cost function 1/m sum (1/2 (aL-y)^2 + lambda/2 (W^2)
-    # print(np.dot(layer1_weights, layer1_weights.T))
-    cost_Wb = (cost)  # / m)   + ((const_lambda/2) * (np.dot(layer1_weights, layer1_weights.T) +
-    # np.dot(layer2_weights, layer2_weights.T)))
+
+    cost_Wb = (cost/m) + const_lambda / 2 * (np.sum(pow(layer1_weights, 2)) + np.sum(pow(layer2_weights, 2)))
     print("Total Cost", cost_Wb, epoch)
     cost_iter = np.append(cost_iter, cost_Wb)
 
