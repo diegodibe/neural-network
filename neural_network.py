@@ -1,5 +1,6 @@
 # Creation of a ANN with backpropagation
 import numpy as np  # see if it's possible to use, otherwise import math
+import matplotlib.pyplot as plt
 
 
 def sigmoid(x):
@@ -48,11 +49,11 @@ layer2_activation[0] = 1
 # learning rate and weight decay
 learning_rate = 0.05
 const_lambda = 0.00005
-cost_tot = 9999999
-cost_iter = 0
+cost_iter = np.array([])
+training_epochs = 3000
 
-# todo plot loss accuray curve
-for epoch in range(3000):
+
+for epoch in range(training_epochs):
     cost = 0
     layer1_df_W = np.zeros((9, 3))
     layer2_df_W = np.zeros((4, 8))
@@ -72,11 +73,10 @@ for epoch in range(3000):
         cost += np.sum(cost_fct3(layer3_activation, m[1]))
 
         delta_3 = np.multiply(layer3_activation.T - m[1], derivative(layer3_activation).T)
-        delta_3 = layer3_activation.T - m[1]
 
         delta_2 = np.multiply(np.dot(delta_3, layer2_weights.T), derivative(layer2_activation).T)
-        delta_2[:, 0] = np.dot(delta_3, layer2_weights[1, :])
 
+        # TODO add weight decay to weight only!!
         layer2_df_W += np.dot(layer2_activation, delta_3)
         layer1_df_W += np.dot(layer1_activation, delta_2[:, 1:])
 
@@ -97,3 +97,11 @@ for epoch in range(3000):
     cost_Wb = (cost)  # / m)   + ((const_lambda/2) * (np.dot(layer1_weights, layer1_weights.T) +
     # np.dot(layer2_weights, layer2_weights.T)))
     print("Total Cost", cost_Wb, epoch)
+    cost_iter = np.append(cost_iter, cost_Wb)
+
+plt.plot(cost_iter)
+plt.xlabel("Iterations")
+plt.ylabel("Cost function")
+plt.title(f"Progression of the cost function over {training_epochs} epochs")
+plt.show()
+
