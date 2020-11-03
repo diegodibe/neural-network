@@ -112,6 +112,7 @@ def main():
     learning_rates = [5.00, 10.00, 30.00, 1.00, 0.01]
     weight_decay = 0.00001
     training_epochs = 10000
+    threshold = 0
     cost_iter = pd.DataFrame(columns=['epoch', 'cost', 'learning rate', 'weight decay'])
 
     layer1_weights_rad = np.random.random_sample((9, 3)) * 0.01
@@ -121,7 +122,7 @@ def main():
         layer1_weights = layer1_weights_rad.copy()
         layer2_weights = layer2_weights_rad.copy()
         cost_iter = cost_iter.append(
-            train_network(training_epochs, a, weight_decay, layer1_weights, layer2_weights, training_set, 0))
+            train_network(training_epochs, a, weight_decay, layer1_weights, layer2_weights, training_set, threshold))
 
 
     print(cost_iter)
