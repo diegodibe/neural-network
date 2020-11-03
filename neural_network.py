@@ -132,10 +132,10 @@ def main():
     plt.title(f"Progression of the cost function over {training_epochs} epochs and weight decay {weight_decay}")
     plt.show()
 
+    # TODO
     # test_network()
 
 
 if __name__ == "__main__":
     main()
 
-## TODO use it
